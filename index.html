@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>Watch & Earn</title>
 
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -73,10 +74,28 @@
             cursor: pointer;
         }
 
+        .watch-btn:disabled {
+            opacity: 0.5;
+        }
+
         .info {
             margin-top: 20px;
             color: #8e98a8;
             font-size: 13px;
+        }
+
+        #adBox {
+            display: none;
+            background: #1b2230;
+            border-radius: 18px;
+            padding: 25px;
+            margin-bottom: 20px;
+        }
+
+        #timer {
+            font-size: 42px;
+            font-weight: bold;
+            margin: 15px;
         }
     </style>
 </head>
@@ -95,15 +114,21 @@
 
     <div class="balance">
         <div class="balance-title">Your Balance</div>
-        <div class="coins">🪙 0</div>
+        <div class="coins">🪙 <span id="balance">0</span></div>
     </div>
 
-    <button class="watch-btn" onclick="watchAd()">
+    <div id="adBox">
+        <div>📺 Demo Advertisement</div>
+        <div id="timer">10</div>
+        <div>Complete the demo to receive points.</div>
+    </div>
+
+    <button id="watchButton" class="watch-btn" onclick="watchAd()">
         📺 Watch Ad & Earn
     </button>
 
     <div class="info">
-        Rewards are added after a valid ad view.
+        Demo rewards only.
     </div>
 
 </div>
@@ -114,11 +139,43 @@
     tg.ready();
     tg.expand();
 
+    let balance = 0;
+
     function watchAd() {
-        tg.showAlert("Ads will be connected here soon!");
+
+        const button = document.getElementById("watchButton");
+        const adBox = document.getElementById("adBox");
+        const timer = document.getElementById("timer");
+
+        button.disabled = true;
+        adBox.style.display = "block";
+
+        let seconds = 10;
+        timer.textContent = seconds;
+
+        const countdown = setInterval(() => {
+
+            seconds--;
+            timer.textContent = seconds;
+
+            if (seconds <= 0) {
+
+                clearInterval(countdown);
+
+                balance += 10;
+
+                document.getElementById("balance").textContent = balance;
+
+                adBox.style.display = "none";
+                button.disabled = false;
+
+                tg.showAlert("🎉 +10 points added!");
+
+            }
+
+        }, 1000);
     }
 </script>
 
 </body>
 </html>
-
