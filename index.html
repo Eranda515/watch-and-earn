@@ -133,15 +133,101 @@
 
 </div>
 
-<script>
+<script type="module">
+
+    import { initializeApp }
+        from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+
+    import {
+        getFirestore,
+        doc,
+        getDoc,
+        setDoc,
+        updateDoc,
+        increment
+    } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+
+
+    // Telegram
     const tg = window.Telegram.WebApp;
 
     tg.ready();
     tg.expand();
 
+
+    // Firebase
+    const firebaseConfig = {
+        apiKey: "AIzaSyBbDUqzhb7IGSy5XyxK24pAUyH1Qfz1hrY",
+        authDomain: "watch-and-earn-53fd9.firebaseapp.com",
+        projectId: "watch-and-earn-53fd9",
+        storageBucket: "watch-and-earn-53fd9.firebasestorage.app",
+        messagingSenderId: "50260883530",
+        appId: "1:50260883530:web:2f71a261e84e0c8c918eb3"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+
     let balance = 0;
 
-    function watchAd() {
+    const telegramUser = tg.initDataUnsafe?.user;
+
+    if (!telegramUser) {
+        tg.showAlert("Please open this app from Telegram.");
+    }
+
+
+    const userId = telegramUser
+        ? String(telegramUser.id)
+        : null;
+
+
+    // Load balance from Firebase
+    async function loadBalance() {
+
+        if (!userId) return;
+
+        try {
+
+            const userRef = doc(db, "users", userId);
+            const userSnap = await getDoc(userRef);
+
+            if (userSnap.exists()) {
+
+                balance = userSnap.data().balance || 0;
+
+            } else {
+
+                balance = 0;
+
+                await setDoc(userRef, {
+                    balance: 0,
+                    telegramId: userId,
+                    name: telegramUser.first_name || ""
+                });
+
+            }
+
+            document.getElementById("balance").textContent = balance;
+
+        } catch (error) {
+
+            console.error(error);
+
+            tg.showAlert("Could not load balance.");
+
+        }
+    }
+
+
+    // Watch demo ad
+    window.watchAd = function () {
+
+        if (!userId) {
+            tg.showAlert("Please open the app from Telegram.");
+            return;
+        }
 
         const button = document.getElementById("watchButton");
         const adBox = document.getElementById("adBox");
@@ -151,30 +237,59 @@
         adBox.style.display = "block";
 
         let seconds = 10;
+
         timer.textContent = seconds;
 
-        const countdown = setInterval(() => {
+
+        const countdown = setInterval(async () => {
 
             seconds--;
+
             timer.textContent = seconds;
+
 
             if (seconds <= 0) {
 
                 clearInterval(countdown);
 
-                balance += 10;
+                try {
 
-                document.getElementById("balance").textContent = balance;
+                    const userRef = doc(db, "users", userId);
 
-                adBox.style.display = "none";
-                button.disabled = false;
+                    await updateDoc(userRef, {
+                        balance: increment(10)
+                    });
 
-                tg.showAlert("🎉 +10 points added!");
+                    balance += 10;
 
+                    document.getElementById("balance").textContent = balance;
+
+                    adBox.style.display = "none";
+
+                    button.disabled = false;
+
+                    tg.showAlert("🎉 +10 points added!");
+
+                } catch (error) {
+
+                    console.error(error);
+
+                    adBox.style.display = "none";
+
+                    button.disabled = false;
+
+                    tg.showAlert("Could not save reward.");
+
+                }
             }
 
         }, 1000);
-    }
+    };
+
+
+    // Start
+    loadBalance();
+
 </script>
 
 </body>
