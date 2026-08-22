@@ -133,332 +133,48 @@
 
 </div>
 
-<script type="module">
-
-    // ==============================
-    // Firebase
-    // ==============================
-
-    import { initializeApp }
-        from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
-
-    import {
-        getAuth,
-        signInAnonymously
-    } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
-
-    import {
-        getFirestore,
-        doc,
-        getDoc,
-        setDoc,
-        updateDoc,
-        increment
-    } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
-
-
-    // ==============================
-    // Telegram
-    // ==============================
-
+<script>
     const tg = window.Telegram.WebApp;
 
     tg.ready();
     tg.expand();
 
-
-    // ==============================
-    // Firebase Config
-    // ==============================
-
-    const firebaseConfig = {
-        apiKey: "AIzaSyBbDUqzhb7IGSy5XyxK24pAUyH1Qfz1hrY",
-        authDomain: "watch-and-earn-53fd9.firebaseapp.com",
-        projectId: "watch-and-earn-53fd9",
-        storageBucket: "watch-and-earn-53fd9.firebasestorage.app",
-        messagingSenderId: "50260883530",
-        appId: "1:50260883530:web:2f71a261e84e0c8c918eb3"
-    };
-
-
-    // ==============================
-    // Initialize Firebase
-    // ==============================
-
-    const app = initializeApp(firebaseConfig);
-
-    const auth = getAuth(app);
-
-    const db = getFirestore(app);
-
-
-    // ==============================
-    // Variables
-    // ==============================
-
     let balance = 0;
 
-    let firebaseUid = null;
-
-    const telegramUser = tg.initDataUnsafe?.user;
-
-
-    // ==============================
-    // Check Telegram User
-    // ==============================
-
-    if (!telegramUser) {
-
-        tg.showAlert("Please open this app from Telegram.");
-
-    }
-
-
-    const telegramId = telegramUser
-        ? String(telegramUser.id)
-        : null;
-
-
-    // ==============================
-    // Anonymous Firebase Login
-    // ==============================
-
-    async function loginAnonymously() {
-
-        try {
-
-            const userCredential = await signInAnonymously(auth);
-
-            firebaseUid = userCredential.user.uid;
-
-            console.log("Firebase Anonymous UID:", firebaseUid);
-
-        } catch (error) {
-
-            console.error("Anonymous Auth Error:", error);
-
-            tg.showAlert(
-                "Could not connect to Firebase Authentication."
-            );
-
-            throw error;
-        }
-    }
-
-
-    // ==============================
-    // Load Balance
-    // ==============================
-
-    async function loadBalance() {
-
-        if (!telegramId || !firebaseUid) {
-            return;
-        }
-
-        try {
-
-            const userRef = doc(
-                db,
-                "users",
-                telegramId
-            );
-
-            const userSnap = await getDoc(userRef);
-
-
-            if (userSnap.exists()) {
-
-                const data = userSnap.data();
-
-                balance = data.balance || 0;
-
-
-                // Add Firebase UID to an existing user
-                // if it does not already exist.
-
-                if (!data.firebaseUid) {
-
-                    await updateDoc(userRef, {
-
-                        firebaseUid: firebaseUid
-
-                    });
-
-                }
-
-
-            } else {
-
-                balance = 0;
-
-                await setDoc(userRef, {
-
-                    balance: 0,
-
-                    telegramId: telegramId,
-
-                    firebaseUid: firebaseUid,
-
-                    name: telegramUser.first_name || ""
-
-                });
-
-            }
-
-
-            document.getElementById("balance").textContent = balance;
-
-
-        } catch (error) {
-
-            console.error("Load Balance Error:", error);
-
-            tg.showAlert(
-                "Could not load balance."
-            );
-
-        }
-    }
-
-
-    // ==============================
-    // Watch Demo Ad
-    // ==============================
-
-    window.watchAd = function () {
-
-        if (!telegramId || !firebaseUid) {
-
-            tg.showAlert(
-                "Please open this app from Telegram."
-            );
-
-            return;
-        }
-
-
-        const button =
-            document.getElementById("watchButton");
-
-        const adBox =
-            document.getElementById("adBox");
-
-        const timer =
-            document.getElementById("timer");
-
+    function watchAd() {
+
+        const button = document.getElementById("watchButton");
+        const adBox = document.getElementById("adBox");
+        const timer = document.getElementById("timer");
 
         button.disabled = true;
-
         adBox.style.display = "block";
 
-
         let seconds = 10;
-
         timer.textContent = seconds;
 
-
-        const countdown = setInterval(async () => {
+        const countdown = setInterval(() => {
 
             seconds--;
-
             timer.textContent = seconds;
-
 
             if (seconds <= 0) {
 
                 clearInterval(countdown);
 
+                balance += 10;
 
-                try {
+                document.getElementById("balance").textContent = balance;
 
-                    const userRef = doc(
-                        db,
-                        "users",
-                        telegramId
-                    );
+                adBox.style.display = "none";
+                button.disabled = false;
 
+                tg.showAlert("🎉 +10 points added!");
 
-                    await updateDoc(userRef, {
-
-                        balance: increment(10),
-
-                        firebaseUid: firebaseUid
-
-                    });
-
-
-                    balance += 10;
-
-
-                    document.getElementById(
-                        "balance"
-                    ).textContent = balance;
-
-
-                    adBox.style.display = "none";
-
-                    button.disabled = false;
-
-
-                    tg.showAlert(
-                        "🎉 +10 points added!"
-                    );
-
-
-                } catch (error) {
-
-                    console.error(
-                        "Reward Error:",
-                        error
-                    );
-
-
-                    adBox.style.display = "none";
-
-                    button.disabled = false;
-
-
-                    tg.showAlert(
-                        "Could not save reward."
-                    );
-
-                }
             }
 
         }, 1000);
-    };
-
-
-    // ==============================
-    // Start App
-    // ==============================
-
-    async function startApp() {
-
-        if (!telegramId) {
-            return;
-        }
-
-        try {
-
-            await loginAnonymously();
-
-            await loadBalance();
-
-        } catch (error) {
-
-            console.error(
-                "App Start Error:",
-                error
-            );
-
-        }
     }
-
-
-    startApp();
-
 </script>
 
 </body>
